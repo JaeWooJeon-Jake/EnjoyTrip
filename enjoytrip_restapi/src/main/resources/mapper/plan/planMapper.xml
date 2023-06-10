@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.luckytrip.plan.model.mapper.PlanMapper">
+
+	<resultMap type="planDto" id="plan">
+		<result column="plan_no" property="planNo" />
+		<result column="plan_name" property="planName" />
+		<result column="user_id" property="userId" />
+		<result column="period" property="period" />
+		<result column="start_date" property="startDate" />
+		<result column="end_date" property="endDate" />
+		<result column="regist_date" property="registDate" />
+	</resultMap>
+	
+	<resultMap type="HashMap" id="course">
+		<result column="plan_no" property="planNo" />
+		<result column="day" property="day" />
+		<result column="seq" property="seq" />
+	</resultMap>
+	
+	<resultMap type="planLikeDto" id="planLike">
+		<result column="plan_no" property="planNo" />
+		<result column="user_id" property="userId" />
+		<result column="state" property="state" />
+	</resultMap>
+
+	<insert id="writePlan" parameterType="PlanDto">
+		insert into plan(plan_name, user_id, period, start_date, end_date, regist_date)
+		values(#{planName}, #{userId}, #{period}, #{startDate}, #{endDate}, now());
+		<selectKey resultType="int" keyProperty="planNo" keyColumn="plan_no" order="AFTER">
+        	SELECT LAST_INSERT_ID()
+    	</selectKey> 
+	</insert>
+	
+	<insert id="writePlanCourse" parameterType="CourseDto">
+		insert into course(plan_no, day, seq)
+		values(#{planNo}, #{day}, #{seq, typeHandler=com.ssafy.luckytrip.util.ArrayTypeHandler});
+	</insert>
+	
+	<select id="getPlanList" resultMap="plan">
+		select plan_no, plan_name, user_id, period, start_date, end_date, regist_date
+		from plan
+		order by regist_date desc
+	</select>
+	
+	<select id="getPlanDetail" parameterType="int" resultMap="plan">
+		select plan_no, plan_name, user_id, period, start_date, end_date, regist_date
+		from plan
+		where plan_no = #{planNo}
+	</select>
+	
+	<select id="getCourseList" parameterType="int" resultMap="course">
+		select plan_no, day, seq
+		from course
+		where plan_no = #{planNo}
+	</select>
+	
+	<delete id="deletePlan" parameterType="int">
+		delete from plan
+		where plan_no = #{planNo}
+	</delete>
+	
+	<select id="findPlanLike" parameterType="map" resultMap="planLike">
+		select plan_no, user_id, state
+		from plan_like
+		where plan_no=#{planNo} and user_id=#{userId};
+	</select>
+	
+	<insert id="createPlanLike" parameterType="map">
+		insert into plan_like(plan_no, user_id, state)
+		values(#{planNo}, #{userId}, #{isLike});
+	</insert>
+	
+	<update id="modifyPlanLike" parameterType="map">
+		update plan_like set state=#{isLike}
+		where plan_no=#{planNo} and user_id=#{userId};
+	</update>
+	
+</mapper>

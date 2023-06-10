@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.luckytrip.board.model.mapper.BoardMapper">
+
+	<resultMap type="boardDto" id="board">
+		<result column="board_no" property="boardNo" />
+		<result column="type" property="type" />
+		<result column="title" property="title" />
+		<result column="content" property="content" />
+		<result column="id" property="userId" />
+		<result column="name" property="userName" />
+		<result column="regist_date" property="registDate" />
+		<result column="view_cnt" property="viewCnt" />
+	</resultMap>
+
+	<select id="getBoardListAll" resultMap="board">
+	select b.board_no, b.type, b.title, b.content, u.id, u.name, b.regist_date, b.view_cnt
+	from board b inner join user u
+	on b.user_id = u.id
+	<!-- limit #{} offset #{}  -->
+	</select>
+	
+	<select id="getBoardView" parameterType="int" resultMap="board">
+	select b.board_no, b.type, b.title, b.content, u.id, u.name, b.regist_date, b.view_cnt
+	from board b inner join user u
+	on b.user_id = u.id
+	where board_no = #{boardNo}
+	</select>
+
+	<insert id="writeBoard" parameterType="boardDto">
+	insert into board(type, title, content, user_id, regist_date)
+	values(#{type}, #{title}, #{content}, #{userId}, now())
+	</insert>
+	
+	<update id="updateBoard" parameterType="boardDto">
+	update board 
+	set type=#{type}, title=#{title}, content=#{content}, regist_date=now()
+	where board_no = #{boardNo}
+	</update>
+	
+	<delete id="deleteBoard" parameterType="int">
+	delete from board
+	where board_no = #{boardNo}
+	</delete>
+</mapper>

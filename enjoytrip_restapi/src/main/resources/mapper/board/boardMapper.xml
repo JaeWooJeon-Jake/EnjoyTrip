@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.luckytrip.board.model.mapper.BoardMapper">
+
+	<resultMap type="boardDto" id="board">
+		<result column="board_no" property="boardNo" />
+		<result column="type" property="type" />
+		<result column="title" property="title" />
+		<result column="content" property="content" />
+		<result column="id" property="userId" />
+		<result column="name" property="userName" />
+		<result column="regist_date" property="registDate" />
+		<result column="view_cnt" property="viewCnt" />
+		<result column="emoji" property="emoji" />
+		<result column="like_cnt" property="likeCnt" />
+		<result column="comment_cnt" property="commentCnt" />
+	</resultMap>
+
+<select id="getBoardListAll" resultMap="board">
+<![CDATA[ 
+select bl.board_no, bl.type, if(LENGTH(bl.title)>=14, concat(left(bl.title,11),'...'), bl.title) title ,if(LENGTH(bl.content)>=28, concat(left(bl.content,25),'...'), bl.content) content, bl.id,bl.name, 
+case 
+when TIMESTAMPDIFF(minute, bl.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s')) < 59 then concat(TIMESTAMPDIFF(minute, bl.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s'))+1,'분전')
+when TIMESTAMPDIFF(hour,  bl.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s')) < 24 then concat(TIMESTAMPDIFF(hour,  bl.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s')),'시간전')
+else date_format(bl.regist_date,'%m/%d %H:%i') end as regist_date,
+bl.view_cnt, bl.like_cnt, count(c.comment_no) comment_cnt
+from (select b.board_no, b.type, b.title,b.content, b.user_id id,u.name, b.regist_date ,b.view_cnt, count(l.user_id) like_cnt from board b 
+left join user u on b.user_id = u.id 
+left join board_like l on b.board_no = l.board_no
+group by b.board_no
+) bl
+left join comment c 
+on bl.board_no = c.board_no
+group by bl.board_no
+order by bl.regist_date desc;
+	]]> 
+</select>
+	
+	<select id="getBoardView" parameterType="int" resultMap="board">
+<!-- select b.board_no, b.type, b.title, b.content, b.user_id, b.view_cnt, u.id, u.name,u.email, u.address, u.phone, date_format(b.regist_date,'%m/%d %H:%i') regist_date, u.emoji, count(l.user_id) like_cnt
+from board b 
+left join user u on b.user_id = u.id 
+left join board_like l on l.board_no = b.board_no 
+where b.board_no = #{boardNo}; -->
+<![CDATA[ 
+select b.board_no, b.type, b.title, b.content, b.user_id, b.view_cnt, u.id, u.name,u.email, u.address, u.phone,
+case 
+when TIMESTAMPDIFF(minute, b.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s')) < 59 then concat(TIMESTAMPDIFF(minute, b.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s'))+1,'분전')
+when TIMESTAMPDIFF(hour,  b.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s')) < 24 then concat(TIMESTAMPDIFF(hour,  b.regist_date, date_format(now(),'%Y-%m-%d %H:%i:%s')),'시간전')
+else date_format(b.regist_date,'%m/%d %H:%i') end as regist_date, 
+u.emoji, count(l.user_id) like_cnt
+from board b 
+left join user u on b.user_id = u.id 
+left join board_like l on l.board_no = b.board_no 
+where b.board_no = #{boardNo};
+	]]> 
+	</select>
+	
+	<update id="registBoardView" parameterType="int">
+	update board 
+	set view_cnt = view_cnt + 1
+	where board_no = #{boardNo}; 
+	</update>
+	
+
+	<insert id="writeBoard" parameterType="boardDto">
+	insert into board(type, title, content, user_id, regist_date)
+	values(#{type}, #{title}, #{content}, #{userId}, now())
+	</insert>
+	
+	<update id="updateBoard" parameterType="boardDto">
+	update board 
+	set type=#{type}, title=#{title}, content=#{content}, regist_date=now()
+	where board_no = #{boardNo}
+	</update>
+	
+	<delete id="deleteBoard" parameterType="int">
+	delete from board
+	where board_no = #{boardNo}
+	</delete>
+	
+	<insert id="likeBoard" parameterType="map">
+	insert ignore into board_like(board_no,user_id) values(#{boardNo},#{userid});
+	</insert>
+	
+	<resultMap type="commentDto" id="comment">
+		<result column="board_no" property="boardNo" />
+		<result column="content" property="content" />
+		<result column="user_id" property="userId" />
+		<result column="name" property="userName" />
+		<result column="created" property="registDate" />
+		<result column="emoji" property="emoji" />
+		<result column="comment_no" property="commentNo" />
+		<result column="like_cnt" property="likeCnt" />
+	</resultMap>
+	
+	<insert id="writeBoardComment" parameterType="commentDto">
+	insert into comment(user_id,content,board_no)
+	values(#{userId}, #{content}, #{boardNo})
+	</insert>
+	
+	<select id="getBoardListCommentAll" parameterType="int" resultMap="comment">
+<!-- select date_format(c.created,'%m/%d %H:%i') created, c.comment_no, c.user_id, c.content, c.created, c.board_no, u.id, u.name, u.email, u.address, u.emoji,count(l.user_id) like_cnt
+from comment c 
+left join user u on c.user_id = u.id
+left join comment_like l on c.comment_no = l.comment_no
+where c.board_no = ${boardNo} group by(comment_no); -->
+<![CDATA[
+select c.comment_no, c.user_id, c.content, c.board_no, u.id, u.name, u.email, u.address, u.emoji,count(l.user_id) like_cnt,
+case 
+when TIMESTAMPDIFF(minute, c.created, date_format(now(),'%Y-%m-%d %H:%i:%s')) < 59 then concat(TIMESTAMPDIFF(minute, c.created, date_format(now(),'%Y-%m-%d %H:%i:%s'))+1,'분전')
+when TIMESTAMPDIFF(hour,  c.created, date_format(now(),'%Y-%m-%d %H:%i:%s')) < 24 then concat(TIMESTAMPDIFF(hour,  c.created, date_format(now(),'%Y-%m-%d %H:%i:%s')),'시간전')
+else date_format(c.created,'%m/%d %H:%i') end as created
+from comment c 
+left join user u on c.user_id = u.id
+left join comment_like l on c.comment_no = l.comment_no
+where c.board_no = ${boardNo} group by(comment_no);
+	]]> 
+	</select>
+	
+	<delete id="deleteBoardComment"  parameterType="int" >
+		delete from comment
+		where comment_no = #{commentNo}
+	</delete>
+	
+	<insert id="likeComment" parameterType="map">
+	insert ignore into comment_like(comment_no,user_id) values(#{commentNo},#{userid});
+	</insert>
+</mapper>
